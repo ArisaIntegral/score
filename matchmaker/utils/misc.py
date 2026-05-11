@@ -584,8 +584,9 @@ def save_debug_results(
     input_features: Optional[np.ndarray] = None,
     distance_func=None,
     ref_frame_to_beat: Optional[np.ndarray] = None,
+    make_plot: bool = True,
 ):
-    """Save debug outputs: alignment path TSV, results JSON, and alignment plot."""
+    """Save debug outputs: alignment path TSV, results JSON, and (optional) plot."""
     save_dir = Path(save_dir)
     save_dir.mkdir(parents=True, exist_ok=True)
 
@@ -597,6 +598,9 @@ def save_debug_results(
 
     with open(save_dir / f"{run_name}.json", "w") as f:
         json.dump(eval_results, f, indent=4)
+
+    if not make_plot:
+        return
 
     # 2. Alignment plot
     # score_y = beat positions for each annotation (y-axis of the plot)

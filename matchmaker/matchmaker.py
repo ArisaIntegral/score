@@ -692,6 +692,7 @@ class Matchmaker(object):
         run_name: str = None,
         domain: str = "score",
         plot_dist_matrix: bool = True,
+        make_plot: bool = True,
     ) -> dict:
         """
         Evaluate the score following process.
@@ -790,6 +791,7 @@ class Matchmaker(object):
                 ),
                 distance_func=getattr(sf, "distance_func", None),
                 ref_frame_to_beat=getattr(sf, "_ref_frame_to_beat", None),
+                make_plot=make_plot,
             )
 
         return eval_results

@@ -4,6 +4,7 @@
 Input MIDI stream
 """
 
+import queue as _queue
 import time
 from types import TracebackType
 from typing import List, Optional, Tuple, Type, Union
