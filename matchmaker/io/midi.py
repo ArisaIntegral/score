@@ -6,12 +6,12 @@ Input MIDI stream
 
 import time
 from types import TracebackType
-from typing import Callable, List, Optional, Tuple, Type, Union
+from typing import List, Optional, Tuple, Type, Union
 
 import mido
 from mido.ports import BaseInput as MidiInputPort
 
-from matchmaker.features.midi import PitchChordProcessor
+from matchmaker.features.midi import PitchProcessor
 from matchmaker.features.processor import Processor
 from matchmaker.io.mediator import CeusMediator
 from matchmaker.io.queue import RECVQueue
@@ -60,7 +60,7 @@ class MidiStream(Stream):
     init_time: float
     listen: bool
     queue: RECVQueue
-    processor: Callable
+    processor: Processor
     return_midi_messages: bool
     first_message: bool
     mediator: CeusMediator
@@ -70,9 +70,9 @@ class MidiStream(Stream):
 
     def __init__(
         self,
-        processor: Optional[Union[Callable, Processor]] = None,
+        processor: Optional[Processor] = None,
         file_path: Optional[str] = None,
-        polling_period: Optional[float] = None,
+        polling_period: Optional[float] = POLLING_PERIOD,
         port: Optional[Union[MidiInputPort, str]] = None,
         queue: RECVQueue = None,
         init_time: Optional[float] = None,
@@ -81,7 +81,7 @@ class MidiStream(Stream):
         virtual_port: bool = False,
     ):
         if processor is None:
-            processor = PitchChordProcessor()
+            processor = PitchProcessor()
 
         Stream.__init__(
             self,

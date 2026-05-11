@@ -6,7 +6,7 @@ Input audio stream
 
 import time
 from types import TracebackType
-from typing import Callable, Dict, Optional, Tuple, Type, Union
+from typing import Dict, Optional, Tuple, Type, Union
 
 import librosa
 import numpy as np
@@ -16,6 +16,7 @@ from matchmaker.features.audio import (
     SAMPLE_RATE,
     ChromagramProcessor,
 )
+from matchmaker.features.processor import Processor
 from matchmaker.io.queue import RECVQueue
 from matchmaker.io.stream import STREAM_END, Stream
 from matchmaker.utils.audio import (
@@ -30,29 +31,44 @@ QUEUE_TIMEOUT = 10
 
 
 class AudioStream(Stream):
-    """A class to process an audio stream in real-time
+    """A class to process an audio stream in real-time.
 
     Parameters
     ----------
-    processor: Optional[Callable]
-        The processor for the features
-    file_path: Optional[str]
+    processor : Optional[Processor]
+        The processor for the features. If ``None``, defaults to
+        ``ChromagramProcessor``.
+    file_path : Optional[str]
         If given, the audio stream will be simulated using the
         given file as an input instead.
     sample_rate : int
-        Sample rate of the audio stream
+        Sample rate of the audio stream.
     hop_length : int
-        Hop length of the audio stream
+        Hop length of the audio stream.
     queue : RECVQueue
-        Queue to store the processed audio
+        Queue to store the processed audio.
     device_name_or_index : Optional[Union[str, int]]
         Name or index of the audio device to be used. Ignored
-        if `file_path` is given.
+        if ``file_path`` is given.
+
+    Notes
+    -----
+    Frame caching: each call to ``_process_feature`` prepends
+    ``self.cache_size`` samples from the previous frame so that FFT
+    windows wider than ``hop_length`` (e.g. SKF's
+    ``RawSpectrumProcessor`` with ``n_fft=512``) have enough context.
+    The cache size is auto-discovered at construction:
+
+    - If ``processor`` exposes an ``n_fft`` attribute,
+      ``cache_size = n_fft - hop_length``.
+    - Otherwise ``cache_size = hop_length`` (one previous hop).
+
+    The first frame is zero-padded by ``cache_size`` samples.
     """
 
     def __init__(
         self,
-        processor: Optional[Callable] = None,
+        processor: Processor = None,
         file_path: Optional[str] = None,
         sample_rate: int = SAMPLE_RATE,
         hop_length: int = HOP_LENGTH,
@@ -111,6 +127,8 @@ class AudioStream(Stream):
 
         self.sample_rate = sample_rate
         self.hop_length = hop_length
+        # See class docstring "Notes" for the cache_size convention.
+        self.cache_size = getattr(processor, "n_fft", 2 * hop_length) - hop_length
         self.queue = queue or RECVQueue()
         self.format = None  # set to pyaudio.paFloat32 in run_online
         self.audio_interface = None
@@ -183,17 +201,9 @@ class AudioStream(Stream):
         target_audio: np.ndarray,
         f_time: float,
     ):
-        # Determine how many samples to cache for the next frame.
-        # For processors with n_fft > 2*hop_length (e.g. 512-point FFT with
-        # 128-sample hop), we need to keep n_fft - hop_length samples so that
-        # the next call has enough context for a full analysis window.
-        cache_size = (
-            getattr(self.processor, "n_fft", 2 * self.hop_length) - self.hop_length
-        )
-
         if self.last_chunk is None:  # add zero padding at the first block
             target_audio = np.concatenate(
-                (np.zeros(cache_size, dtype=np.float32), target_audio)
+                (np.zeros(self.cache_size, dtype=np.float32), target_audio)
             )
         else:
             # add last chunk at the beginning of the block
@@ -213,7 +223,7 @@ class AudioStream(Stream):
         )
 
         # cache last chunk (for the next frame window)
-        self.last_chunk = target_audio[-cache_size:]
+        self.last_chunk = target_audio[-self.cache_size :]
 
     @property
     def current_time(self) -> Optional[float]:

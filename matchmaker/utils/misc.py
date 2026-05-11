@@ -351,40 +351,6 @@ def get_tempo_at_beat(
     return current_tempo
 
 
-def adjust_tempo_for_performance_file(
-    score: ScoreLike, performance_file: Path, default_tempo: int = 120
-):
-    """
-    Adjust the tempo of the score part to match the performance file.
-    We round the tempo to the nearest 10 bpm to avoid too much optimization.
-
-    Parameters
-    ----------
-    score : partitura.score.ScoreLike
-        The score to adjust the tempo of.
-    performance_file : Path
-        The performance file to adjust the tempo to.
-    default_tempo : int
-        The default tempo of the score.
-    """
-    score_midi = partitura.save_score_midi(score, out=None)
-    source_length = score_midi.length
-    if is_midi_file(performance_file):
-        perf = partitura.load_performance_midi(performance_file)
-        pna = perf.note_array()
-        last_onset = pna["onset_sec"].max()
-        last_duration = pna["duration_sec"][-1]
-        target_length = last_onset + last_duration
-    else:
-        target_length = librosa.get_duration(path=str(performance_file))
-    ratio = target_length / source_length
-    rounded_tempo = int(round(default_tempo / ratio / 10) * 10)  # round to nearest 10
-    print(
-        f"default tempo: {default_tempo} (score length: {source_length}) -> adjusted_tempo: {rounded_tempo} (perf length: {target_length})"
-    )
-    return rounded_tempo
-
-
 def get_current_note_bpm(score: ScoreLike, onset_beat: float, tempo: float) -> float:
     """Get the adjusted BPM for a given note onset beat position based on time signature."""
     current_time = score.inv_beat_map(onset_beat)
