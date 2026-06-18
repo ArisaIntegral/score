@@ -35,10 +35,24 @@ EXAMPLE_PIECES = {
         "annotations": str(ASSETS_DIR / "Bach-fugue_bwv_858_note_annotations.txt"),
         "beat_annotations": str(ASSETS_DIR / "Bach-fugue_bwv_858_beat_annotations.txt"),
     },
+    "canon": {
+        "score": str(ASSETS_DIR / "canon.mxl"),
+        "midi": str(ASSETS_DIR / "canon.mid"),
+        "audio": str(ASSETS_DIR / "canon.mp3"),
+       # "match": str(ASSETS_DIR / "canon_in_d.match"),
+        "annotations": str(ASSETS_DIR / "canon_annotations.txt"),
+    },
+    "bach_cello1": {
+        "score": str(ASSETS_DIR / "bach_cello1.mxl"),
+        #"midi": str(ASSETS_DIR / "canon.mid"),
+        "audio": str(ASSETS_DIR / "bach_cello1_sample.mp3"),
+       # "match": str(ASSETS_DIR / "canon_in_d.match"),
+        #"annotations": str(ASSETS_DIR / "canon_annotations.txt"),
+    }
 }
 
 # Legacy constants
-EXAMPLE_SCORE = str(ASSETS_DIR / "mozart_k265_var1.musicxml")
-EXAMPLE_PERFORMANCE = str(ASSETS_DIR / "mozart_k265_var1.mid")
-EXAMPLE_MATCH = str(ASSETS_DIR / "mozart_k265_var1.match")
-EXAMPLE_AUDIO = str(ASSETS_DIR / "mozart_k265_var1.mp3")
+#EXAMPLE_SCORE = str(ASSETS_DIR / "mozart_k265_var1.musicxml")
+#EXAMPLE_PERFORMANCE = str(ASSETS_DIR / "mozart_k265_var1.mid")
+#EXAMPLE_MATCH = str(ASSETS_DIR / "mozart_k265_var1.match")
+#EXAMPLE_AUDIO = str(ASSETS_DIR / "mozart_k265_var1.mp3")
