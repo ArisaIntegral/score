@@ -158,26 +158,7 @@ class AudioOuterProductHMM(OnlineAlignment):
                 if not (21 <= p <= 108):
                     continue
                 base = int(p - 21)
-
-#追加
-                #基本音
                 self.chord_harmonic_mask[i, base] += note_weight
-
-                #周辺binにも少し重みを入れる
-                for offset, weight in [(-1, 0.4), (1, 0.4)]:
-                    b = base + offset
-                    if 0 <= b < 88:
-                        self.chord_harmonic_mask[i, b] += note_weight * weight
-
-                
-                # 倍音対策
-                #for harmonic, weight in [(2, 0.4), (3, 0.25), (4, 0.15)]:
-                #    hp = int(round(12 * np.log2(harmonic)))
-                #    b = base + hp
-                #    if 0 <= b < 88:
-                #        self.chord_harmonic_mask[i, b] += note_weight * weight
-
-
             s = float(np.sum(self.chord_harmonic_mask[i]))
             if s > 0:
                 self.chord_harmonic_mask[i] /= s

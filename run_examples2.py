@@ -4,14 +4,15 @@ import json
 from _queue import Empty
 from pathlib import Path
 
+import time
 from matchmaker import EXAMPLE_PIECES, Matchmaker
 
 ROOT_DIR = Path(__file__).parent
-_piece = EXAMPLE_PIECES["bach_cello1_piano"]
+_piece = EXAMPLE_PIECES["bach_cello1_ver2"]
 SCORE_FILE = Path(_piece["score"])
 PERFORMANCE_AUDIO_FILE = Path(_piece["audio"])
 PERFORMANCE_MIDI_FILE = Path(_piece["midi"])
-ANNOTATION_FILE = Path(_piece["annotations"])
+#ANNOTATION_FILE = Path(_piece["annotations"])
 
 
 def select_performance_file(input_mode):
@@ -77,6 +78,18 @@ def main():
     except Empty as e:
         print(f"Error initializing Matchmaker: {e}")
         return
+    
+    log_file = open("beat_log.txt", "w", encoding="utf-8")
+    start = time.time()
+
+    with open("beat_log.txt", "w") as f:
+        for i, current_position in enumerate(mm.run()):
+            f.write(
+                f"frame={i}, beat={current_position:.3f}\n"
+            )
+
+
+    log_file.close()
 
     # Run real-time score following
     for current_position in mm.run():
@@ -85,10 +98,10 @@ def main():
 
     # Run evaluation
     print("-" * 50)
-    print(f"Running evaluation using the annotations file ({ANNOTATION_FILE.name})...")
+    #print(f"Running evaluation using the annotations file ({ANNOTATION_FILE.name})...")
 
     results = mm.run_evaluation(
-        perf_annotations=ANNOTATION_FILE,
+       # perf_annotations=ANNOTATION_FILE,
         debug=True,
         save_dir=ROOT_DIR / "results",
         run_name="simple_example",

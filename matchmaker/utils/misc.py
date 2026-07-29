@@ -20,6 +20,11 @@ from matplotlib import pyplot as plt
 from numpy.typing import NDArray
 from partitura.score import ScoreLike
 
+#追加
+import fluidsynth
+from partitura.utils.fluidsynth import DEFAULT_SOUNDFONT
+
+
 # Tempo marking to BPM mapping
 # Reference: https://en.wikipedia.org/wiki/Tempo#Basic_tempo_markings
 TEMPO_MARKING_TO_BPM = {
@@ -372,7 +377,7 @@ def get_current_note_bpm(score: ScoreLike, onset_beat: float, tempo: float) -> f
     # Return adjusted BPM if time signature change exists, else default tempo
     return latest_change["beat_type"] / 4 * tempo if latest_change else tempo
 
-
+"""
 def generate_score_audio(score: ScoreLike, bpm: float, samplerate: int):
     bpm_array = [
         [onset_beat, get_current_note_bpm(score, onset_beat, bpm)]
@@ -406,7 +411,87 @@ def generate_score_audio(score: ScoreLike, bpm: float, samplerate: int):
     last_onset_in_time += buffer_size
     score_audio = score_audio[: int(last_onset_in_time * samplerate)]
     return score_audio
+"""
+#追加
+def generate_score_audio(score: ScoreLike, bpm: float, samplerate: int):
+    """
+    Generate score audio with forced cello sound.
+    Cello: General MIDI program 43, FluidSynth API program 42.
+    """
+    note_array = score.note_array()
 
+    def beat_to_seconds(beat):
+        t = score.inv_beat_map(beat)
+        qdur = score.quarter_duration_map(t)
+        return float(t / qdur * (60.0 / bpm))
+
+    events = []
+
+    for note in note_array:
+        pitch = int(note["pitch"])
+        onset_beat = float(note["onset_beat"])
+        offset_beat = float(note["onset_beat"] + note["duration_beat"])
+
+        onset_sec = beat_to_seconds(onset_beat)
+        offset_sec = beat_to_seconds(offset_beat)
+
+        velocity = 80
+
+        events.append((onset_sec, "on", pitch, velocity))
+        events.append((offset_sec, "off", pitch, 0))
+
+    events.sort(key=lambda x: x[0])
+
+    if not events:
+        return np.zeros(1, dtype=np.float32)
+
+    end_time = events[-1][0] + 0.5
+    total_samples = int(np.ceil(end_time * samplerate))
+
+    fs = fluidsynth.Synth(samplerate=samplerate)
+    sfid = fs.sfload(DEFAULT_SOUNDFONT)
+
+    # Channel 0, bank 0, program 42 = Cello in 0-based MIDI numbering
+    fs.program_select(0, sfid, 0, 42)
+
+    chunks = []
+    current_sample = 0
+
+    for event_time, event_type, pitch, velocity in events:
+        event_sample = int(round(event_time * samplerate))
+        n_samples = max(0, event_sample - current_sample)
+
+        if n_samples > 0:
+            samples = fs.get_samples(n_samples)
+            samples = np.asarray(samples, dtype=np.float32)
+
+            # FluidSynth returns interleaved stereo
+            samples = samples.reshape(-1, 2).mean(axis=1)
+
+            chunks.append(samples)
+            current_sample = event_sample
+
+        if event_type == "on":
+            fs.noteon(0, pitch, velocity)
+        else:
+            fs.noteoff(0, pitch)
+
+    remaining = total_samples - current_sample
+    if remaining > 0:
+        samples = fs.get_samples(remaining)
+        samples = np.asarray(samples, dtype=np.float32)
+        samples = samples.reshape(-1, 2).mean(axis=1)
+        chunks.append(samples)
+
+    fs.delete()
+
+    score_audio = np.concatenate(chunks).astype(np.float32)
+
+    max_abs = np.max(np.abs(score_audio))
+    if max_abs > 1e-8:
+        score_audio = score_audio / max_abs * 0.8
+
+    return score_audio
 
 def save_nparray_to_csv(array: NDArray, save_path: str):
     with open(save_path, "w") as csvfile:

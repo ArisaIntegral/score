@@ -171,11 +171,11 @@ class AudioOuterProductHMM(OnlineAlignment):
 
                 
                 # 倍音対策
-                #for harmonic, weight in [(2, 0.4), (3, 0.25), (4, 0.15)]:
-                #    hp = int(round(12 * np.log2(harmonic)))
-                #    b = base + hp
-                #    if 0 <= b < 88:
-                #        self.chord_harmonic_mask[i, b] += note_weight * weight
+                for harmonic, weight in [(2, 0.4), (3, 0.25), (4, 0.15)]:
+                    hp = int(round(12 * np.log2(harmonic)))
+                    b = base + hp
+                    if 0 <= b < 88:
+                        self.chord_harmonic_mask[i, b] += note_weight * weight
 
 
             s = float(np.sum(self.chord_harmonic_mask[i]))

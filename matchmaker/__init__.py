@@ -43,11 +43,25 @@ EXAMPLE_PIECES = {
         "annotations": str(ASSETS_DIR / "canon_annotations.txt"),
     },
     "bach_cello1": {
-        "score": str(ASSETS_DIR / "bach_cello1.mxl"),
-        #"midi": str(ASSETS_DIR / "canon.mid"),
+        "score": str(ASSETS_DIR / "bach_cello1.musicxml"),
+        "midi": str(ASSETS_DIR / "bach_cello1.mid"),
         "audio": str(ASSETS_DIR / "bach_cello1_sample.mp3"),
        # "match": str(ASSETS_DIR / "canon_in_d.match"),
-        #"annotations": str(ASSETS_DIR / "canon_annotations.txt"),
+        "annotations": str(ASSETS_DIR / "bach_cello1_sample_annotations.txt"),
+    },
+    "bach_cello1_ver2": {
+        "score": str(ASSETS_DIR / "bach_cello1.musicxml"),
+        "midi": str(ASSETS_DIR / "bach_cello1.mid"),
+        "audio": str(ASSETS_DIR / "bach_cello1.mp3"),
+       # "match": str(ASSETS_DIR / "canon_in_d.match"),
+        "annotations": str(ASSETS_DIR / "bach_cello1_annotations.txt"),
+    },
+        "bach_cello1_piano": {
+        "score": str(ASSETS_DIR / "bach_cello1.musicxml"),
+        "midi": str(ASSETS_DIR / "bach_cello1.mid"),
+        "audio": str(ASSETS_DIR / "bach_cello1_piano.mp3"),
+       # "match": str(ASSETS_DIR / "canon_in_d.match"),
+        "annotations": str(ASSETS_DIR / "bach_cello1_sample_annotations.txt"),
     }
 }
 

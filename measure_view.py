@@ -15,7 +15,7 @@ from matchmaker.features.audio import ChromagramProcessor
 # 設定
 # =========================
 
-PIECE_NAME = "canon"
+PIECE_NAME = "bach_cello1"
 BEATS_PER_MEASURE = 4
 
 SAMPLE_RATE = 22050
@@ -90,7 +90,7 @@ def main():
 
     mm = Matchmaker(
         score_file=score_file,
-        input_type="audio",
+        input_type="midi",
         method="arzt",
         stream=stream,
     )

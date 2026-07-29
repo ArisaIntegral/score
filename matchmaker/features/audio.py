@@ -19,7 +19,7 @@ N_MELS = 128
 N_MFCC = 13
 DCT_TYPE = 2
 NORM = np.inf
-FEATURES = "chroma"
+FEATURES = "chroma"  # "mel", "mfcc", "log_spectral", "cqt", "cqt_spectral_flux"
 
 # Type hint for Input Audio frame.
 InputAudioSeries = np.ndarray
@@ -149,6 +149,12 @@ class CQTSpectralFluxProcessor(Processor):
         self.include_spectral_flux = include_spectral_flux
         self.prev_magnitude = None
 
+#追加
+    def reset(self):
+        self.prev_magnitude = None
+
+    
+
     def __call__(
         self,
         data: InputAudioFrame,
@@ -164,6 +170,7 @@ class CQTSpectralFluxProcessor(Processor):
             norm=self.norm,
             dtype=np.float32,
         )
+
         cqt_features = np.abs(cqt).T
 
         if self.include_spectral_flux:
@@ -386,3 +393,66 @@ def compute_features_from_audio(
     features, _ = feature_processor((score_y, 0.0))
 
     return features
+
+#追加
+class StartGateProcessor(Processor):
+    def __init__(
+        self,
+        base_processor,
+        rms_threshold: float = 3e-3,
+        peak_threshold: float = 1e-2,
+        min_active_frames: int = 15,
+    ):
+        super().__init__()
+        self.base_processor = base_processor
+        self.rms_threshold = rms_threshold
+        self.peak_threshold = peak_threshold
+        self.min_active_frames = min_active_frames
+        self.active_count = 0
+        self.started = False
+
+    def reset(self):
+        self.active_count = 0
+        self.started = False
+        if hasattr(self.base_processor, "reset"):
+            self.base_processor.reset()
+
+    def process_without_gate(self, data):
+        return self.base_processor(data)
+
+    def __call__(self, data):
+        y, f_time = data
+
+        rms = float(np.sqrt(np.mean(y ** 2)))
+        peak = float(np.max(np.abs(y)))
+
+        if not self.started:
+            active = (
+                rms >= self.rms_threshold
+                and peak >= self.peak_threshold
+            )
+
+            if active:
+                self.active_count += 1
+            else:
+                self.active_count = 0
+
+            # ここに waiting ログ
+            print(
+                f"[StartGate waiting] t={f_time:.3f}, "
+                f"rms={rms:.8f}, peak={peak:.8f}, "
+                f"active_count={self.active_count}"
+            )
+
+            if self.active_count < self.min_active_frames:
+                return None
+
+            self.started = True
+
+            # ここに START ログ
+            print(
+                f"[StartGate START] t={f_time:.3f}, "
+                f"rms={rms:.8f}, peak={peak:.8f}"
+            )
+
+        return self.base_processor(data)

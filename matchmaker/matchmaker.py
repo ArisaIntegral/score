@@ -10,6 +10,9 @@ from partitura.io.exportmidi import get_ppq
 from partitura.score import Part, merge_parts
 from partitura.utils.music import performance_notearray_from_score_notearray
 
+#追加
+from matchmaker.features.audio import StartGateProcessor
+
 from matchmaker.dp import (
     OnlineTimeWarpingArztEvent,
     OnlineTimeWarpingArztFrame,
@@ -26,6 +29,7 @@ from matchmaker.features.audio import (
     MelSpectrogramProcessor,
     MFCCProcessor,
     RawSpectrumProcessor,
+    StartGateProcessor,  # 追加
 )
 from matchmaker.features.midi import (
     ChordOnsetProcessor,
@@ -320,7 +324,7 @@ class Matchmaker(object):
         self.stream = stream if stream is not None else self._build_stream(method, wait)
         self.reference_features = self.preprocess_score()
         self.score_follower = self._build_score_follower(method)
-
+    """
     def _build_processor(self, method, processor_type):
         if self.input_type == "audio":
             audio_kw = dict(sample_rate=self.sample_rate, hop_length=self.hop_length)
@@ -339,9 +343,58 @@ class Matchmaker(object):
                     n_fft=self.config.get("n_fft", 512),
                 ),
             }
+            """
+    def _build_processor(self, method, processor_type):
+        if self.input_type == "audio":
+            audio_kw = dict(sample_rate=self.sample_rate, hop_length=self.hop_length)
+            if method == "pf":
+                audio_kw["n_fft"] = self.config.get("n_fft", 1024)
+
+            AUDIO_PROCESSORS = {
+                "chroma": lambda: ChromagramProcessor(**audio_kw),
+                "mfcc": lambda: MFCCProcessor(**audio_kw),
+                "cqt": lambda: CQTProcessor(**audio_kw),
+                "mel": lambda: MelSpectrogramProcessor(**audio_kw),
+                "lse": lambda: LogSpectralEnergyProcessor(**audio_kw),
+                "cqt_spectral_flux": lambda: CQTSpectralFluxProcessor(**audio_kw),
+                "raw_spectrum": lambda: RawSpectrumProcessor(
+                    sample_rate=self.sample_rate,
+                    hop_length=self.hop_length,
+                    n_fft=self.config.get("n_fft", 512),
+                ),
+            }  
+
+            if processor_type in AUDIO_PROCESSORS:
+                base = AUDIO_PROCESSORS[processor_type]()
+
+                print("[Processor build] base:", type(base).__name__)
+
+                wrapped = StartGateProcessor(
+                    base,
+                    rms_threshold=self.config.get("start_rms_threshold", 3e-3),
+                    peak_threshold=self.config.get("start_peak_threshold", 1e-2),
+                    min_active_frames=self.config.get("min_active_frames", 15),
+                )
+
+                print("[Processor build] wrapped:", type(wrapped).__name__)
+
+                return wrapped
+
+            raise ValueError(f"Invalid feature type '{processor_type}'")
+
+            """
             if processor_type in AUDIO_PROCESSORS:
                 return AUDIO_PROCESSORS[processor_type]()
             raise ValueError(f"Invalid feature type '{processor_type}'")
+            """
+            
+            if processor_type in AUDIO_PROCESSORS:
+                base = AUDIO_PROCESSORS[processor_type]()
+                return StartGateProcessor(
+                    base,
+                    rms_threshold=self.config.get("start_rms_threshold", 1e-4),
+                    min_active_frames=self.config.get("min_active_frames", 3),
+                )
 
         # All MIDI processors are stateless aggregators over their input frame.
         # Time-based grouping (e.g., chords) is the stream's job: set
@@ -539,7 +592,16 @@ class Matchmaker(object):
             score_audio = generate_score_audio(
                 self.score_part, self.tempo, self.sample_rate
             ).astype(np.float32)
+            """
             features, _ = self.processor((score_audio, 0.0))
+            self.processor.reset()
+            return features
+            """
+            #追加
+            if hasattr(self.processor, "process_without_gate"):
+                features, _ = self.processor.process_without_gate((score_audio, 0.0))
+            else:
+                features, _ = self.processor((score_audio, 0.0))
             self.processor.reset()
             return features
 

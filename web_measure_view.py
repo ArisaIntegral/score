@@ -9,14 +9,14 @@ import streamlit as st
 
 from matchmaker import EXAMPLE_PIECES, Matchmaker
 from matchmaker.io.audio import BytesAudioStream
-from matchmaker.features.audio import ChromagramProcessor
+from matchmaker.features.audio import ChromagramProcessor, StartGateProcessor
 
 
 # =========================
 # 設定
 # =========================
 
-PIECE_NAME = "bach_fugue"
+PIECE_NAME = "bach_cello1_ver2"
 BEATS_PER_MEASURE = 4
 
 SAMPLE_RATE = 22050
@@ -147,6 +147,15 @@ if start_button:
         input_type="audio",
         method="arzt",
         stream=stream,
+        kwargs={
+        "processor": "chroma",
+        "window_size": 30,
+        "start_window_size": 2.0,
+        "step_size": 10,
+        "start_rms_threshold": 3e-3,
+        "min_active_frames": 15,
+        },
+
     )
 
     producer_thread = threading.Thread(
@@ -164,6 +173,11 @@ if start_button:
 
     for current_position in mm.run(verbose=False):
         elapsed_time = time.time() - start_time
+
+        print(
+            f"time={elapsed_time:.2f}, "
+            f"beat={current_position:.2f}"
+        )
 
         measure_number, beat_in_measure = get_measure_position(
             current_position,
